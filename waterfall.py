@@ -32,4 +32,5 @@ for x in range(15):
     time.sleep(0.001)
     plt.specgram(spec2,scale='dB')
 
+print("done")
 plt.show()

@@ -27,8 +27,6 @@ for x in range(5):
         data = sdr.rx()
         #print(data)
         t[y,:] = data
-        
-
 
     shifted_spectrum = fftshift(fft(data))
     plt.draw()
