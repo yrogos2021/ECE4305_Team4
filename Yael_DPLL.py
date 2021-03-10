@@ -66,10 +66,7 @@ for i in range(N):
 	#else:
 	#	f_n[i] = f_n[i-1] + G*e[i-1]
 		
-	f_n[N] = f_n[0] + G*(sum(e[i])
-
-	
-return #something		
+f_n[N] = f_n[0] + G*sum(e)	
 
 ##plt.figure(figsize=(9, 5))
 #plt.plot(dataI, dataQ)
