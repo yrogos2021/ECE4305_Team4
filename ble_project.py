@@ -38,7 +38,7 @@ def dewhiten_str_to_bits(bits):
 	return str_xor(bits, lfsr_out)
 
 
-sample_rate = 6.00e6
+sample_rate = 2.00e6
 center_freq = 2.426e9 #BLE #Recommend: use chnl 38
 exponent = 21
 num_samples = 2**exponent #apporx 4 million samples
@@ -67,7 +67,7 @@ bits = "".join(list(map(lambda x: "1" if x < 0 else "0",
 		
 #print(bits)
 
-preamble = "000000111111000000111111000000111111000000111111"#"0011001100110011"
+preamble = "0011001100110011" #"000000111111000000111111000000111111000000111111"
 
 potential_packets = bits.split(preamble)
 #for p in potential_packets:
@@ -92,15 +92,15 @@ print("Potential Packets Found: " + str(len(potential_packets)-1))
 #dewhiten broadcast bits
 dewhittened_packets = []
 for packet in has_access:
-	dewhittened = [dewhiten_str_to_bits(pakcet[len(access_address):])]
+	dewhittened = dewhiten_str_to_bits(packet[len(access_address):])
 	length_field_header = dewhittened[8:14]
-	payload_size_bytes = int(''.join(str(x) for x in length_field_header[::-1]), 2)
+	payload_size_bytes = int("".join(str(x) for x in length_field_header[::-1]), 2)
 	print("Found payload size (bytes): " + str(payload_size_bytes))
 	total_length_after_AA = 16 + 8*payload_size_bytes + 24
 	chopped_packet = dewhittened[:total_length_after_AA]
-	print("Total packet: " + ''.join(str(x) for x in chopped_packet))
+	print("Total packet: " + "".join(str(x) for x in chopped_packet))
 	
-
+print(dewhittened_packets)
 
 #print(has_access)
 plt.plot(data_phase_derivative)
