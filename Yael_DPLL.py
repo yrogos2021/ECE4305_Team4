@@ -42,12 +42,10 @@ K = 1
 theta = B_L/(M*((damping+0.25)/damping))
 delta = 1+ (2*dampng *theta)+ (theta**2)
 G = (4*damping *theta/delta)/(M*K)
+loop_filter= np.empty(N, dtype=complex)
+loop_filter_past = 0.0
+e_past = 0.0
 
-# Error
-if (abs(2*np.pi*foffset*t - gamma) > abs(2*np.pi*-foffset*t - gamma)):
-	e[0] = 2*np.pi*(-foffset*t) - gamma) # '0'
-else:
-	e[0] = 2*np.pi*foffset*t - gamma) # '1'
 
 #DPLL
 for i in range(N):
@@ -59,22 +57,15 @@ for i in range(N):
 		e[i] = 2*np.pi*(-foffset*t) - gamma) # '0'
 	else:
 		e[i] = 2*np.pi*foffset*t - gamma) # '1'
+	
+	loop_filter[i] = loop_filter_past + G * e_past
+	e_past = e[i]
+	loop_filter_past = loop_filter[i]
 
-	#Loop Filter Using Z-Transform
-	#if(i == 0):
-	#	f_n[0] = G*e[0]	
-	#else:
-	#	f_n[i] = f_n[i-1] + G*e[i-1]
-		
-f_n[N] = f_n[0] + G*sum(e)	
+	# DDS - this is if we use the summation format
 
-##plt.figure(figsize=(9, 5))
-#plt.plot(dataI, dataQ)
-#xlabel('Inphase')
-#plt.ylabel('Quadrature')
-#plt.show()
+	f_n_angle = np.anglee(f_n[i])
+	new_delta= np.exp(-1j*f_n_angle)
+	
 
-#mag = np.sqrt(np.square(np.real(data))+np.square(np.imag(data)))
-#phase = np.arctan(np.imag(data)/np.real(data))
-#dataI = np.cos(2.0*np.pi*(foffset+deltaF)*t+Phase_Offset*np.ones(N))
-#dataQ = -np.sin(2.0*np.pi*(foffset+deltaF)*t+Phase_Offset*np.ones(N))
+fiter_derivative = np.diff(np.angle(f_n))
