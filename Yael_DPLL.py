@@ -50,10 +50,13 @@ e_past = 0.0
 #DPLL
 for i in range(N):
 	#phase rotate
-	gamma = data - (2*np.pi*deltaF*t)
+	if i==0:
+		gamma = data - (2*np.pi*deltaF*t)
+	else:
+		gamma = data - (2*np.pi*new_delta*t)
 
 	# Error
-	if (abs(2*np.pi*foffset*t - gamma) > abs(2*np.pi*-foffset*t - gamma)):
+	if np.all(abs(2*np.pi*foffset*t - gamma) > abs(2*np.pi*-foffset*t - gamma)):
 		e[i] = 2*np.pi*(-foffset*t) - gamma) # '0'
 	else:
 		e[i] = 2*np.pi*foffset*t - gamma) # '1'
