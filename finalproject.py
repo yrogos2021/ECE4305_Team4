@@ -89,11 +89,11 @@ foffset = -bin_w * num_offset
 
 # ----------- Stuff From Chpt. 6 ------------
 time_axis = np.linspace( 0, num_samples/sample_rate, len(data))
-neg_freq_detrend_line = np.exp(1j*2*np.pi.0.5*sample_rate*time_axis)
+neg_freq_detrend_line = np.exp(1j*2*np.pi*0.5*sample_rate*time_axis)
 coarse_freq_correct = np.exp(1j*2*np.pi*foffset*time_axis)
-center_data = data*neg)freq_detrend_line*coarse_freq_correct
+center_data = data*neg*freq_detrend_line*coarse_freq_correct
 
-unwrapped_data_phase = np.unwrap(np.angle(center_data)
+unwrapped_data_phase = np.unwrap(np.angle(center_data))
 unwrapped_compensator_phase = np.wrap(compensator_phase)
 
 data_phase_derivative = np.diff(unwrapped_data_phase)
@@ -127,4 +127,4 @@ for i in range(N):
 # --------------- Frame Sync ----------------
 
 
-----------------------------------------------------
+#----------------------------------------------------
