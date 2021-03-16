@@ -30,8 +30,6 @@ shifted_frequency = numpy.fft.fftshift(time_to_freq)
 # length = len(shifted_frequency)
 energy_sum = sum(shifted_frequency)
 
-# --------- Take Spectrum of Signal ---------
-   
 # ----------------- Set Fc ------------------
 half_energy = energy_sum/2
 sample_center = 0
@@ -47,4 +45,20 @@ for i in range(num_samples):
 bin_w = sample_rate/len(shifted_frequency)
 num_offset = sample_center - len(shifted_frequency)/2
 foffset = -bin_w * num_offset
+
+
+
+# ----------------- Coarse Frequency------------------
+time_axis = np.linspace( 0, num_samples/sample_rate, len(data))
+neg_freq_detrend_line = np.exp(1j*2*np.pi.0.5*sample_rate*time_axis)
+coarse_freq_correct = np.exp(1j*2*np.pi*foffset*time_axis)
+center_data = data*neg)freq_detrend_line*coarse_freq_correct
+
+unwrapped_data_phase = np.unwrap(np.angle(center_data)
+unwrapped_compensator_phase = np.wrap(compensator_phase)
+
+data_phase_derivative = np.diff(unwrapped_data_phase)
+
+shifted = data_phase_derivative**2
+shifted = list(map(lambda x: 0 if x < 4 else x, shifted))
 
