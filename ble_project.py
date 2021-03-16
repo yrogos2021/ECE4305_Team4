@@ -37,8 +37,23 @@ def dewhiten_str_to_bits(bits):
 		current_state[0] = [out_bit] + current_state[0][:-1]
 	return str_xor(bits, lfsr_out)
 
-
+def listToString(s):
+	str1 = ""
+	
+	for x in s:
+		character = str(x)
+		str1 += character
+	return str1
+	
+#----------------------- Important Variables ----------------------------
 sample_rate = 2.00e6
+preamble = "0011001100110011"
+#preamble = "00001111000011110000111100001111"
+#preamble = "000000111111000000111111000000111111000000111111"
+
+access_address = "01101011011111011001000101110001" 
+#access_address ="0011110011001111001111111111001111000011000000110011111100000011"
+
 center_freq = 2.426e9 #BLE #Recommend: use chnl 38
 exponent = 21
 num_samples = 2**exponent #apporx 4 million samples
@@ -65,15 +80,10 @@ data_phase_derivative = np.diff(unwrapped_data_phase)
 bits = "".join(list(map(lambda x: "1" if x < 0 else "0",
 		data_phase_derivative)))
 		
-#print(bits)
-
-preamble = "0011001100110011" #"000000111111000000111111000000111111000000111111"
-
 potential_packets = bits.split(preamble)
 #for p in potential_packets:
 #	print(p + "\n\n")
 
-access_address = "01101011011111011001000101110001" # not doubled
 has_access = []
 
 for packet in potential_packets:
@@ -94,11 +104,39 @@ dewhittened_packets = []
 for packet in has_access:
 	dewhittened = dewhiten_str_to_bits(packet[len(access_address):])
 	length_field_header = dewhittened[8:14]
+	length_device_name = dewhittened[20:22]
 	payload_size_bytes = int("".join(str(x) for x in length_field_header[::-1]), 2)
+	name_length = int("".join(str(x) for x in length_device_name[::-1]), 2)
 	print("Found payload size (bytes): " + str(payload_size_bytes))
 	total_length_after_AA = 16 + 8*payload_size_bytes + 24
 	chopped_packet = dewhittened[:total_length_after_AA]
-	print("Total packet: " + "".join(str(x) for x in chopped_packet))
+	
+	
+	p = listToString(chopped_packet[27:27+name_length])
+	#"".join(str(x) for x in chopped_packet)#
+	print("Name size: ", name_length)
+	
+	chopped_hex = hex(int(listToString(chopped_packet)))
+	chopped_hex = chopped_hex[2:]
+	hex_backs = chopped_hex[::-1]
+	name = chopped_hex[27:27+(name_length*2)]
+	
+	#p_slice = hex(int(p, 2))
+	#p_slice = p_slice[2:]
+	#p_slice = p_slice[::-1]
+	
+	
+	print("Total packet: ", listToString(chopped_packet))
+	print("Hex Format: ", chopped_hex)
+	print("Hex Format Reverse: ", hex_backs)
+	print("Name: ", name)#p_slice)#[11:11+name_Size])
+	#p_bytes = bytes.fromhex(p_slice).decode('utf-8')
+	#p_string = p_bytes.decode("ASCII")
+	#print("Translation: ", p_string)
+	
+	#decode the packet information
+#	if(len(potential_packets) - 1) == 37:
+		
 	
 print(dewhittened_packets)
 
