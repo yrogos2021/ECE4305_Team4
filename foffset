@@ -45,6 +45,6 @@ for i in range(num_samples):
 		break
 
 bin_w = sample_rate/len(shifted_frequency)
-foffset = bin_w*(sample_center - len(shifted_frequency)/2)
-#foffset = bin_w * number_offset
+num_offset = sample_center - len(shifted_frequency)/2
+foffset = -bin_w * num_offset
 
