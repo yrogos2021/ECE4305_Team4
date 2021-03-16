@@ -94,8 +94,8 @@ for packet in potential_packets:
 	if odd_bits.startswith(access_address):
 		has_access = has_access + [odd_bits]
 
-for p in has_access: 
-	print(p[:1024] + "\n\n")
+#for p in has_access: 
+#	print(p[:1024] + "\n\n")
 
 print("Potential Packets Found: " + str(len(potential_packets)-1))
 
@@ -104,6 +104,19 @@ dewhittened_packets = []
 for packet in has_access:
 	dewhittened = dewhiten_str_to_bits(packet[len(access_address):])
 	length_field_header = dewhittened[8:14]
+	
+	payload = dewhittened[16:]
+	payload = payload[::-1]
+	
+	payload_hex = hex(int(listToString(payload)))
+	payload_hex = payload_hex[2:]
+	print(payload_hex)
+	b_payload = bytes.fromhex(payload_hex).decode('utf-8')
+	payload_final = b_payload.decode("ASCII")
+	print(" ")
+	print("Payload: ", payload_final)
+	
+	'''
 	length_device_name = dewhittened[20:22]
 	payload_size_bytes = int("".join(str(x) for x in length_field_header[::-1]), 2)
 	name_length = int("".join(str(x) for x in length_device_name[::-1]), 2)
@@ -118,13 +131,9 @@ for packet in has_access:
 	
 	chopped_hex = hex(int(listToString(chopped_packet)))
 	chopped_hex = chopped_hex[2:]
-	hex_backs = chopped_hex[::-1]
+	hex_backs = hex(int(listToString(chopped_packet[::-1])))
 	name = chopped_hex[27:27+(name_length*2)]
-	
-	#p_slice = hex(int(p, 2))
-	#p_slice = p_slice[2:]
-	#p_slice = p_slice[::-1]
-	
+		
 	
 	print("Total packet: ", listToString(chopped_packet))
 	print("Hex Format: ", chopped_hex)
@@ -143,3 +152,4 @@ print(dewhittened_packets)
 #print(has_access)
 plt.plot(data_phase_derivative)
 plt.show()
+'''
