@@ -131,3 +131,7 @@ for i in range(len(center_data)):
 
 #----------------------------------------------------
 
+plt.plot(e)
+plt.xlabel('Index')
+plt.ylabel('Error')
+plt.show()

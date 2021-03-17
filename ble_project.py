@@ -40,11 +40,17 @@ def dewhiten_str_to_bits(bits):
 def listToString(s):
 	str1 = ""
 	
-	for x in s:
-		character = str(x)
+	for x in range(len(s)):
+		character = str(s[x])
 		str1 += character
 	return str1
-
+'''
+test1 = [1,0,1,1,0,0,1,1]
+test2 = listToString(test1)
+print(test2)
+print(int(test2,2))
+print(hex(int(test2,2)))
+'''
 def flip(byte):
 	temp0 = []
 	size = int((len(byte))/8)
@@ -64,11 +70,8 @@ print(test1)
 #----------------------- Important Variables ----------------------------
 sample_rate = 2.00e6
 preamble = "0011001100110011"
-#preamble = "00001111000011110000111100001111"
-#preamble = "000000111111000000111111000000111111000000111111"
 
 access_address = "01101011011111011001000101110001" 
-#access_address ="0011110011001111001111111111001111000011000000110011111100000011"
 
 center_freq = 2.426e9 #BLE #Recommend: use chnl 38
 exponent = 21
@@ -97,9 +100,6 @@ bits = "".join(list(map(lambda x: "1" if x < 0 else "0",
 		data_phase_derivative)))
 		
 potential_packets = bits.split(preamble)
-#for p in potential_packets:
-#	print(p + "\n\n")
-
 has_access = []
 
 for packet in potential_packets:
@@ -110,65 +110,15 @@ for packet in potential_packets:
 	if odd_bits.startswith(access_address):
 		has_access = has_access + [odd_bits]
 
-#for p in has_access: 
-#	print(p[:1024] + "\n\n")
-
-print("Potential Packets Found: " + str(len(potential_packets)-1))
 
 #dewhiten broadcast bits
 dewhittened_packets = []
 for packet in has_access:
-	dewhittened = dewhiten_str_to_bits(packet[len(access_address):])
-	length_field_header = dewhittened[8:14]
-	
+	dewhittened = dewhiten_str_to_bits(packet[len(access_address):])	
 	payload = dewhittened[16:]
-	#payload = payload[::-1]
-	#print(payload)
 	payload2 = flip(payload)
-	print(payload)
-	print(payload2)
-	payload_hex = hex(int(listToString(payload2)))
+	payload3 = int(listToString(payload2),2)
+	payload_hex = hex(payload3)
 	payload_hex = payload_hex[2:]
 	print(payload_hex)
-	#b_payload = bytes.fromhex(payload_hex).decode('utf-8')
-	#payload_final = b_payload.decode("ASCII")
-	#print(" ")
-	#print("Payload: ", payload_final)
 	
-	'''
-	length_device_name = dewhittened[20:22]
-	payload_size_bytes = int("".join(str(x) for x in length_field_header[::-1]), 2)
-	name_length = int("".join(str(x) for x in length_device_name[::-1]), 2)
-	print("Found payload size (bytes): " + str(payload_size_bytes))
-	total_length_after_AA = 16 + 8*payload_size_bytes + 24
-	chopped_packet = dewhittened[:total_length_after_AA]
-	
-	
-	p = listToString(chopped_packet[27:27+name_length])
-	#"".join(str(x) for x in chopped_packet)#
-	print("Name size: ", name_length)
-	
-	chopped_hex = hex(int(listToString(chopped_packet)))
-	chopped_hex = chopped_hex[2:]
-	hex_backs = hex(int(listToString(chopped_packet[::-1])))
-	name = chopped_hex[27:27+(name_length*2)]
-		
-	
-	print("Total packet: ", listToString(chopped_packet))
-	print("Hex Format: ", chopped_hex)
-	print("Hex Format Reverse: ", hex_backs)
-	print("Name: ", name)#p_slice)#[11:11+name_Size])
-	#p_bytes = bytes.fromhex(p_slice).decode('utf-8')
-	#p_string = p_bytes.decode("ASCII")
-	#print("Translation: ", p_string)
-	
-	#decode the packet information
-#	if(len(potential_packets) - 1) == 37:
-		
-	
-print(dewhittened_packets)
-
-#print(has_access)
-plt.plot(data_phase_derivative)
-plt.show()
-'''
