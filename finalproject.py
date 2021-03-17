@@ -16,6 +16,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import scipy.integrate as integrate
 import scipy.special as special
+from scipy.fft import fftshift, fft
 
 # --------- Radio Configuration ---------
 
@@ -24,7 +25,7 @@ sample_rate = 8e6
 symbol_rate = 1e6
 center_freq = 2.45e9
 exponent = 10
-num_samples = 2**exponent
+N = 2**exponent
 
 # More Setup
 sdr = adi.Pluto ("ip:192.168.2.1")
@@ -38,26 +39,26 @@ data = sdr.rx()
 
 # --------- Constants ---------
 deltaF = 0.0
-t = np.linspace(0.0, (num_samples-1)/(float(sample_rate)), num_samples)
+t = np.linspace(0.0, (N-1)/(float(sample_rate)), N)
 PhaseOffset = 0.0
 
-data_phase = angle(data)
+data_phase = np.angle(data)
 
 # --------- Ideal Signal ---------
 offset = 1e6
-Ideal_dataI = np.cos(2.0*np.pi*(offset+deltaF)*t+PhaseOffset*np.ones(num_samples))
-Ideal_dataQ = -np.sin(2.0*np.pi*(offset+deltaF)*t+PhaseOffset*np.ones(num_samples))
+Ideal_dataI = np.cos(2.0*np.pi*(offset+deltaF)*t+PhaseOffset*np.ones(N))
+Ideal_dataQ = -np.sin(2.0*np.pi*(offset+deltaF)*t+PhaseOffset*np.ones(N))
 
 # --------- Time to Frequency and Shifted ---------
-time_to_freq = numpy.fft(data)
-shifted_frequency = numpy.fft.fftshift(time_to_freq)
+time_to_freq = fft(data)
+shifted_frequency = fftshift(time_to_freq)
 energy_sum = sum(shifted_frequency)
 
 # ----------------- Set Fc ------------------
 half_energy = energy_sum/2
 sample_center = 0
 summation = 0
-for i in range(num_samples):
+for i in range(N):
 	summation = summation + shifted_frequency[i]
 	if summation < half_energy:
 		pass
@@ -70,7 +71,7 @@ num_offset = sample_center - len(shifted_frequency)/2
 foffset = -bin_w * num_offset
 
 # ----------- Coarse Frequency Correction ------------
-time_axis = np.linspace(0, num_samples/sample_rate, len(data))
+time_axis = np.linspace(0, N/sample_rate, len(data))
 neg_freq_detrend_line = np.exp(1j*2*np.pi*0.5*sample_rate*time_axis)
 coarse_freq_correct = np.exp(1j*2*np.pi*foffset*time_axis)
 
@@ -80,7 +81,7 @@ DC_centered_data = data*neg_freq_detrend_line
 
 unwrapped_data_phase_DC = np.unwrap(np.angle(DC_centered_data))
 unwrapped_data_phase = np.unwrap(np.angle(center_data))
-unwrapped_compensator_phase = np.unwrap(compensator_phase)
+#unwrapped_compensator_phase = np.unwrap(compensator_phase)
 
 data_phase_derivative = np.diff(unwrapped_data_phase)
 
@@ -94,7 +95,7 @@ damping = 1
 M = 2e6
 K = 1
 theta = B_L/(M*((damping+0.25)/damping))
-delta = 1+ (2*dampng *theta)+ (theta**2)
+delta = 1+ (2*damping *theta)+ (theta**2)
 G = (4*damping *theta/delta)/(M*K)
 
 #for DPLL
@@ -105,13 +106,13 @@ loop_filter= np.empty(N, dtype=complex)
 loop_filter_past = 0.0
 e_past = 0.0
 
-for i in range(num_samples):
+for i in range(len(center_data)):
 	#phase rotate
 	if i==0:
-		phase_rotator = centered_data[i] * deltaF
+		phase_rotator = center_data[i] * deltaF
 		correction_output[i] = phase_rotator
 	else:
-		phase_rotator = centered_data[i] * new_delta
+		phase_rotator = center_data[i] * new_delta
 		correction_output[i] = phase_rotator	
 	# Errorf
 	e[i] = phase_rotator * (Ideal_dataI[i] +1j*Ideal_dataQ[i])
