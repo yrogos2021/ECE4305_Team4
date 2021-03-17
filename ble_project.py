@@ -22,6 +22,54 @@ from scipy.fft import fftshift, fft
 from scipy import signal
 from array import *
 
+sample_rate = 2.00e6
+
+#----------------------- Important Variables ----------------------------
+preamble = "0011001100110011"
+#preamble = "00001111000011110000111100001111"
+#preamble = "000000111111000000111111000000111111000000111111"
+
+access_address = "01101011011111011001000101110001" 
+#access_address ="0011110011001111001111111111001111000011000000110011111100000011"
+
+center_freq = 2.426e9 #BLE #Recommend: use chnl 38
+exponent = 21
+num_samples = 2**exponent #apporx 4 million samples
+freq_axis = np.linspace(center_freq-0.5*sample_rate,
+			center_freq+0.5*sample_rate,
+			num_samples)
+
+sdr = adi.Pluto("ip:192.168.2.1")
+sdr.sample_rate = int(sample_rate)
+sdr.rx_rf_bandwidth = int(sample_rate)
+sdr.rx_lo = int(center_freq)
+sdr.rx_buffer_size = num_samples
+
+data = sdr.rx()
+
+exponent = 10
+N = 2**exponent
+deltaF = 0.0
+t = np.linspace(0.0, (N-1)/(float(sample_rate)), N)
+PhaseOffset = 0.0
+
+data_phase = np.angle(data)
+
+			
+#time_axis = np.linspace(0, num_samples/sample_rate, len(data))
+#neg_freq_detrend_line = np.exp(1j*2*np.pi*-0.5*sample_rate*time_axis)
+
+#DC_centered_data = data*neg_freq_detrend_line
+
+#unwrapped_data_phase = np.unwrap(np.angle(DC_centered_data))
+
+#data_phase_derivative = np.diff(unwrapped_data_phase)
+		
+#for p in potential_packets:
+#	print(p + "\n\n")
+
+has_access = []
+
 #--------- Definitions ----------
 def str_xor(a,b):
 	return list(map(lambda x: 0 if x[0] is x[1] else 1, zip(a,b)))
@@ -40,8 +88,8 @@ def dewhiten_str_to_bits(bits):
 def listToString(s):
 	str1 = ""
 	
-	for x in s:
-		character = str(x)
+	for x in range(len(s)):
+		character = str(s[x])
 		str1 += character
 	return str1
 
@@ -58,49 +106,99 @@ test = [0,0,0,0,1,1,1,1,0,1,0,1,0,0,1,1]
 test1 = flip(test)
 print(test)
 print(test1)
-'''
+'''	
 
-	#byte = byte[::-1]	
-#----------------------- Important Variables ----------------------------
-sample_rate = 2.00e6
-preamble = "0011001100110011"
-#preamble = "00001111000011110000111100001111"
-#preamble = "000000111111000000111111000000111111000000111111"
+# --------- Ideal Signal ---------
+offset = 1e6
+Ideal_dataI = np.cos(2.0*np.pi*(offset+deltaF)*t+PhaseOffset*np.ones(N))
+Ideal_dataQ = -np.sin(2.0*np.pi*(offset+deltaF)*t+PhaseOffset*np.ones(N))
 
-access_address = "01101011011111011001000101110001" 
-#access_address ="0011110011001111001111111111001111000011000000110011111100000011"
+# --------- Time to Frequency and Shifted ---------
+time_to_freq = fft(data)
+shifted_frequency = fftshift(time_to_freq)
+energy_sum = sum(shifted_frequency)
 
-center_freq = 2.426e9 #BLE #Recommend: use chnl 38
-exponent = 21
-num_samples = 2**exponent #apporx 4 million samples
-freq_axis = np.linspace(center_freq-0.5*sample_rate,
-			center_freq+0.5*sample_rate,
-			num_samples)
-			
-sdr = adi.Pluto("ip:192.168.2.1")
-sdr.sample_rate = int(sample_rate)
-sdr.rx_rf_bandwidth = int(sample_rate)
-sdr.rx_lo = int(center_freq)
-sdr.rx_buffer_size = num_samples
+# ----------------- Set Fc ------------------
+half_energy = energy_sum/2
+sample_center = 0
+summation = 0
+for i in range(N):
+	summation = summation + shifted_frequency[i]
+	if summation < half_energy:
+		pass
+	else:
+		sample_center = i
+		break
 
-data = sdr.rx()
-time_axis = np.linspace(0, num_samples/sample_rate, len(data))
-neg_freq_detrend_line = np.exp(1j*2*np.pi*-0.5*sample_rate*time_axis)
+bin_w = sample_rate/len(shifted_frequency)
+num_offset = sample_center - len(shifted_frequency)/2
+foffset = -bin_w * num_offset
 
+# ----------- Coarse Frequency Correction ------------
+time_axis = np.linspace(0, N/sample_rate, len(data))
+neg_freq_detrend_line = np.exp(1j*2*np.pi*0.5*sample_rate*time_axis)
+coarse_freq_correct = np.exp(1j*2*np.pi*foffset*time_axis)
+
+# ----------- Coarse Frequency Correction ------------
+center_data = data*neg_freq_detrend_line*coarse_freq_correct
 DC_centered_data = data*neg_freq_detrend_line
 
-unwrapped_data_phase = np.unwrap(np.angle(DC_centered_data))
+unwrapped_data_phase_DC = np.unwrap(np.angle(DC_centered_data))
+unwrapped_data_phase = np.unwrap(np.angle(center_data))
+#unwrapped_compensator_phase = np.unwrap(compensator_phase)
 
 data_phase_derivative = np.diff(unwrapped_data_phase)
 
+shifted = data_phase_derivative**2
+shifted = list(map(lambda x: 0 if x < 4 else x, shifted))
+
+# ------------------ DPLL -------------------
+#for G
+B_L = 0.01
+damping = 1
+M = 2e6
+K = 1
+theta = B_L/(M*((damping+0.25)/damping))
+delta = 1+ (2*damping *theta)+ (theta**2)
+G = (4*damping *theta/delta)/(M*K)
+
+#for DPLL
+correction_output = np.empty(len(center_data), dtype = complex)
+e = np.empty(len(center_data), dtype = complex)
+f_n = np.zeros(N)
+loop_filter= np.empty(N, dtype=complex)
+loop_filter_past = 0.0
+e_past = 0.0
+
+for i in range(len(center_data)):
+	#phase rotate
+	if i==0:
+		phase_rotator = center_data[i] * deltaF
+		correction_output[i] = phase_rotator
+	else:
+		phase_rotator = center_data[i] * new_delta
+		correction_output[i] = phase_rotator	
+	# Errorf
+	e[i] = phase_rotator * (Ideal_dataI[i] +1j*Ideal_dataQ[i])
+	
+	loop_filter[i] = loop_filter_past + G * e_past
+	e_past = e[i]
+	loop_filter_past = loop_filter[i]
+
+	# DDS - this is if we use the summation format
+
+	f_n_angle = np.angle(loop_filter[i])
+	new_delta= np.exp(-1j*f_n_angle)
+	
+# --------------- Frame Sync ----------------
+
+
+#----------------------------------------------------
+
 bits = "".join(list(map(lambda x: "1" if x < 0 else "0",
 		data_phase_derivative)))
-		
-potential_packets = bits.split(preamble)
-#for p in potential_packets:
-#	print(p + "\n\n")
 
-has_access = []
+potential_packets = bits.split(preamble)
 
 for packet in potential_packets:
 	even_bits = packet[::2]
@@ -127,7 +225,7 @@ for packet in has_access:
 	payload2 = flip(payload)
 	print(payload)
 	print(payload2)
-	payload_hex = hex(int(listToString(payload2)))
+	payload_hex = hex(int(listToString(payload2), 2))
 	payload_hex = payload_hex[2:]
 	print(payload_hex)
 	#b_payload = bytes.fromhex(payload_hex).decode('utf-8')
@@ -164,11 +262,12 @@ for packet in has_access:
 	
 	#decode the packet information
 #	if(len(potential_packets) - 1) == 37:
-		
+		'''
 	
-print(dewhittened_packets)
+#print(dewhittened_packets)
 
 #print(has_access)
 plt.plot(data_phase_derivative)
 plt.show()
-'''
+
+
