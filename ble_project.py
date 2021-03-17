@@ -44,7 +44,23 @@ def listToString(s):
 		character = str(x)
 		str1 += character
 	return str1
-	
+
+def flip(byte):
+	temp0 = []
+	size = int((len(byte))/8)
+	for x in range(size):
+		temp = byte[8*x:8*x+8]
+		temp = temp[::-1]
+		temp0 += temp
+	return temp0
+'''
+test = [0,0,0,0,1,1,1,1,0,1,0,1,0,0,1,1]
+test1 = flip(test)
+print(test)
+print(test1)
+'''
+
+	#byte = byte[::-1]	
 #----------------------- Important Variables ----------------------------
 sample_rate = 2.00e6
 preamble = "0011001100110011"
@@ -106,15 +122,18 @@ for packet in has_access:
 	length_field_header = dewhittened[8:14]
 	
 	payload = dewhittened[16:]
-	payload = payload[::-1]
-	
-	payload_hex = hex(int(listToString(payload)))
+	#payload = payload[::-1]
+	#print(payload)
+	payload2 = flip(payload)
+	print(payload)
+	print(payload2)
+	payload_hex = hex(int(listToString(payload2)))
 	payload_hex = payload_hex[2:]
 	print(payload_hex)
-	b_payload = bytes.fromhex(payload_hex).decode('utf-8')
-	payload_final = b_payload.decode("ASCII")
-	print(" ")
-	print("Payload: ", payload_final)
+	#b_payload = bytes.fromhex(payload_hex).decode('utf-8')
+	#payload_final = b_payload.decode("ASCII")
+	#print(" ")
+	#print("Payload: ", payload_final)
 	
 	'''
 	length_device_name = dewhittened[20:22]
