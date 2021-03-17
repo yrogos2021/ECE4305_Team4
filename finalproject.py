@@ -21,7 +21,7 @@ from scipy.fft import fftshift, fft
 # --------- Radio Configuration ---------
 
 # Center and Sampling Frequencies
-sample_rate = 8e6
+sample_rate = 2e6
 symbol_rate = 1e6
 center_freq = 2.45e9
 exponent = 10
